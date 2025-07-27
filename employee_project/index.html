@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>نظام إدارة الموظفين</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fef9f4;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #d97706;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #fcd9a9;
+      color: #333;
+    }
+    button {
+      background-color: #f59e0b;
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d97706;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 400px;
+    }
+    .modal input, .modal select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .btn-danger {
+      background-color: #dc2626;
+    }
+    .btn-secondary {
+      background-color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📋 قائمة الموظفين</h1>
+  <button onclick="openAddModal()">➕ إضافة موظف</button>
+
+  <table id="employeeTable">
+    <thead>
+      <tr>
+        <th>الاسم الكامل</th>
+        <th>تاريخ الميلاد</th>
+        <th>التخصص</th>
+        <th>الحالة الاجتماعية</th>
+        <th>عدد الأطفال</th>
+        <th>التحكم</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- بيانات الموظفين ستُدرج هنا عبر JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- نموذج الإضافة -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h3>إضافة موظف جديد</h3>
+      <input type="text" id="addName" placeholder="الاسم الكامل">
+      <input type="date" id="addDob">
+      <input type="text" id="addSpecialty" placeholder="التخصص">
+      <select id="addMarried">
+        <option value="متزوج">متزوج</option>
+        <option value="أعزب">أعزب</option>
+      </select>
+      <input type="number" id="addChildren" placeholder="عدد الأطفال">
+      <div class="actions">
+        <button onclick="addEmployee()">إضافة</button>
+        <button class="btn-secondary" onclick="closeAddModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نموذج التعديل -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>تعديل بيانات الموظف</h3>
+      <input type="hidden" id="editId">
+      <input type="text" id="editName">
+      <input type="date" id="editDob">
+      <input type="text" id="editSpecialty">
+      <select id="editMarried">
+        <option value="متزوج">متزوج</option>
+        <option value="أعزب">أعزب</option>
+      </select>
+      <input type="number" id="editChildren">
+      <div class="actions">
+        <button onclick="updateEmployee()">تحديث</button>
+        <button class="btn-secondary" onclick="closeEditModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- تأكيد الحذف -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content">
+      <h3>هل أنت متأكد من حذف <span id="deleteName"></span>؟</h3>
+      <div class="actions">
+        <button class="btn-danger" onclick="confirmDelete()">نعم</button>
+        <button class="btn-secondary" onclick="closeDeleteModal()">لا</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentId = null;
+
+    function fetchEmployees() {
+      fetch('get_employees.php')
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#employeeTable tbody');
+          tbody.innerHTML = '';
+          data.forEach(emp => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${emp.name}</td>
+              <td>${emp.dob}</td>
+              <td>${emp.specialty}</td>
+              <td>${emp.married}</td>
+              <td>${emp.children}</td>
+              <td>
+                <button onclick="openEditModal(${emp.id}, '${emp.name}', '${emp.dob}', '${emp.specialty}', '${emp.married}', ${emp.children})">✏️ تعديل</button>
+                <button class="btn-danger" onclick="openDeleteModal(${emp.id}, '${emp.name}')">🗑️ حذف</button>
+              </td>
+            `;
+            tbody.appendChild(row);
+          });
+        });
+    }
+
+    function openAddModal() {
+      document.getElementById('addModal').style.display = 'flex';
+    }
+    function closeAddModal() {
+      document.getElementById('addModal').style.display = 'none';
+    }
+    function openEditModal(id, name, dob, specialty, married, children) {
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = name;
+      document.getElementById('editDob').value = dob;
+      document.getElementById('editSpecialty').value = specialty;
+      document.getElementById('editMarried').value = married;
+      document.getElementById('editChildren').value = children;
+      document.getElementById('editModal').style.display = 'flex';
+    }
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+    function openDeleteModal(id, name) {
+      currentId = id;
+      document.getElementById('deleteName').textContent = name;
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    function addEmployee() {
+      const data = new FormData();
+      data.append('name', document.getElementById('addName').value);
+      data.append('dob', document.getElementById('addDob').value);
+      data.append('specialty', document.getElementById('addSpecialty').value);
+      data.append('married', document.getElementById('addMarried').value);
+      data.append('children', document.getElementById('addChildren').value);
+
+      fetch('add_employee.php', { method: 'POST', body: data })
+        .then(() => {
+          closeAddModal();
+          fetchEmployees();
+        });
+    }
+
+    function updateEmployee() {
+      const data = new FormData();
+      data.append('id', document.getElementById('editId').value);
+      data.append('name', document.getElementById('editName').value);
+      data.append('dob', document.getElementById('editDob').value);
+      data.append('specialty', document.getElementById('editSpecialty').value);
+      data.append('married', document.getElementById('editMarried').value);
+      data.append('children', document.getElementById('editChildren').value);
+
+      fetch('update_employee.php', { method: 'POST', body: data })
+        .then(() => {
+          closeEditModal();
+          fetchEmployees();
+        });
+    }
+
+    function confirmDelete() {
+      const data = new FormData();
+      data.append('id', currentId);
+
+      fetch('delete_employee.php', { method: 'POST', body: data })
+        .then(() => {
+          closeDeleteModal();
+          fetchEmployees();
+        });
+    }
+
+    window.onload = fetchEmployees;
+  </script>
+</body>
+</html>
