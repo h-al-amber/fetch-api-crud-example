@@ -31,9 +31,9 @@
 
 ```sql
 -- employees.sql
-CREATE DATABASE employees_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE employees CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE employees_db;
+USE employees;
 
 CREATE TABLE employees (
   id INT AUTO_INCREMENT PRIMARY KEY,
